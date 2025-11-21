@@ -1,0 +1,101 @@
+//@version=6
+indicator("HTF Candle Trend (Sanya Setup)", overlay=true)
+
+// ════════════════════════════════════════════════════════════════════════════
+// INPUTS
+// ════════════════════════════════════════════════════════════════════════════
+htf_tf = input.timeframe("D", "HTF Timeframe")
+lookback = input.int(5, "Lookback candles", minval=1, maxval=50)
+minBodyPct = input.float(0.25, "Min body as % of range", minval=0.0, maxval=1.0, step=0.05)
+showBackground = input.bool(true, "Show background color")
+
+// ════════════════════════════════════════════════════════════════════════════
+// HTF DATA RETRIEVAL
+// ════════════════════════════════════════════════════════════════════════════
+htf_open = request.security(syminfo.tickerid, htf_tf, open)
+htf_high = request.security(syminfo.tickerid, htf_tf, high)
+htf_low = request.security(syminfo.tickerid, htf_tf, low)
+htf_close = request.security(syminfo.tickerid, htf_tf, close)
+
+// ════════════════════════════════════════════════════════════════════════════
+// CANDLE CLASSIFICATION LOGIC
+// ════════════════════════════════════════════════════════════════════════════
+// Count significant bullish and bearish candles over the lookback period
+var int bullCount = 0
+var int bearCount = 0
+
+bullCount := 0
+bearCount := 0
+
+// Analyze each of the last 'lookback' HTF candles
+for i = 0 to lookback - 1
+    range = htf_high[i] - htf_low[i]
+    body = math.abs(htf_close[i] - htf_open[i])
+    
+    // Skip candles with no range (invalid data)
+    if range > 0
+        bodyRatio = body / range
+        
+        // Only count candles with significant body (above minimum threshold)
+        if bodyRatio >= minBodyPct
+            if htf_close[i] > htf_open[i]
+                bullCount += 1  // Bullish candle
+            else if htf_close[i] < htf_open[i]
+                bearCount += 1  // Bearish candle
+            // If close == open, candle is neutral (not counted)
+
+// ════════════════════════════════════════════════════════════════════════════
+// TREND DETERMINATION
+// ════════════════════════════════════════════════════════════════════════════
+// Threshold is more than half of lookback period
+threshold = math.floor(lookback / 2) + 1
+trend = 0
+
+if bullCount >= threshold and bullCount > bearCount
+    trend := 1  // BULLISH TREND
+else if bearCount >= threshold and bearCount > bullCount
+    trend := -1  // BEARISH TREND
+else
+    trend := 0  // NEUTRAL / NO CLEAR TREND
+
+// ════════════════════════════════════════════════════════════════════════════
+// VISUALIZATION
+// ════════════════════════════════════════════════════════════════════════════
+
+// --- Trend Ribbon (using plot) ---
+// Plot the trend value as a colored line
+ribbonColor = trend == 1 ? color.green : trend == -1 ? color.red : color.gray
+plot(trend, "HTF Trend Value", color=ribbonColor, linewidth=3, style=plot.style_line)
+
+// --- Background Color (optional) ---
+if showBackground
+    bgColor = trend == 1 ? color.new(color.green, 85) : 
+              trend == -1 ? color.new(color.red, 85) : 
+              color.new(color.gray, 88)
+    bgcolor(bgColor, title="Trend Background")
+
+// --- Status Label (top-left corner on last bar) ---
+if barstate.islast
+    // Determine trend text
+    trendText = trend == 1 ? "BULL" : trend == -1 ? "BEAR" : "NEUTRAL"
+    labelText = "HTF Candle Trend (" + htf_tf + "): " + trendText + 
+                " [B:" + str.tostring(bullCount) + " / Be:" + str.tostring(bearCount) + "]"
+    
+    // Create label at top of chart
+    var label trendLabel = na
+    label.delete(trendLabel)
+    trendLabel := label.new(
+         x=bar_index, 
+         y=high, 
+         text=labelText, 
+         style=label.style_label_down, 
+         color=color.new(color.gray, 30), 
+         textcolor=color.white, 
+         size=size.normal)
+
+// ════════════════════════════════════════════════════════════════════════════
+// ADDITIONAL INFO (for data window / debugging)
+// ════════════════════════════════════════════════════════════════════════════
+plot(bullCount, "Bull Count", color=color.new(color.green, 80), display=display.data_window)
+plot(bearCount, "Bear Count", color=color.new(color.red, 80), display=display.data_window)
+plot(threshold, "Threshold", color=color.new(color.blue, 80), display=display.data_window)
