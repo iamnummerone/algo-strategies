@@ -21,11 +21,8 @@ htf_close = request.security(syminfo.tickerid, htf_tf, close)
 // CANDLE CLASSIFICATION LOGIC
 // ════════════════════════════════════════════════════════════════════════════
 // Count significant bullish and bearish candles over the lookback period
-var int bullCount = 0
-var int bearCount = 0
-
-bullCount := 0
-bearCount := 0
+int bullCount = 0
+int bearCount = 0
 
 // Analyze each of the last 'lookback' HTF candles
 for i = 0 to lookback - 1
@@ -39,9 +36,9 @@ for i = 0 to lookback - 1
         // Only count candles with significant body (above minimum threshold)
         if bodyRatio >= minBodyPct
             if htf_close[i] > htf_open[i]
-                bullCount := bullCount + 1  // Bullish candle
+                bullCount += 1  // Bullish candle
             else if htf_close[i] < htf_open[i]
-                bearCount := bearCount + 1  // Bearish candle
+                bearCount += 1  // Bearish candle
             // If close == open, candle is neutral (not counted)
 
 // ════════════════════════════════════════════════════════════════════════════
