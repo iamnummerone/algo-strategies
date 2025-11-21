@@ -68,8 +68,7 @@ if showBackground
 if barstate.islast
     // Determine trend text
     trendText = trend == 1 ? "BULL" : trend == -1 ? "BEAR" : "NEUTRAL"
-    labelText = "HTF Candle Trend (" + htf_tf + "): " + trendText + 
-                " [B:" + str.tostring(bullCount) + " / Be:" + str.tostring(bearCount) + "]"
+    labelText = "HTF Candle Trend (" + htf_tf + "): " + trendText + " [B:" + str.tostring(bullCount) + " / Be:" + str.tostring(bearCount) + "]"
     
     // Create label at top of chart
     var label trendLabel = na
