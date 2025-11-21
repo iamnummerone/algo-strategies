@@ -26,12 +26,12 @@ int bearCount = 0
 
 // Analyze each of the last 'lookback' HTF candles
 for i = 0 to lookback - 1
-    range = htf_high[i] - htf_low[i]
+    candle_range = htf_high[i] - htf_low[i]
     body = math.abs(htf_close[i] - htf_open[i])
     
     // Skip candles with no range (invalid data)
-    if range > 0
-        bodyRatio = body / range
+    if candle_range > 0
+        bodyRatio = body / candle_range
         
         // Only count candles with significant body (above minimum threshold)
         if bodyRatio >= minBodyPct
