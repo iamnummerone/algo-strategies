@@ -39,9 +39,9 @@ for i = 0 to lookback - 1
         // Only count candles with significant body (above minimum threshold)
         if bodyRatio >= minBodyPct
             if htf_close[i] > htf_open[i]
-                bullCount += 1  // Bullish candle
+                bullCount := bullCount + 1  // Bullish candle
             else if htf_close[i] < htf_open[i]
-                bearCount += 1  // Bearish candle
+                bearCount := bearCount + 1  // Bearish candle
             // If close == open, candle is neutral (not counted)
 
 // ════════════════════════════════════════════════════════════════════════════
