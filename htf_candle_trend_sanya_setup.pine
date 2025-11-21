@@ -49,14 +49,8 @@ for i = 0 to lookback - 1
 // ════════════════════════════════════════════════════════════════════════════
 // Threshold is more than half of lookback period
 threshold = math.floor(lookback / 2) + 1
-trend = 0
-
-if bullCount >= threshold and bullCount > bearCount
-    trend := 1  // BULLISH TREND
-else if bearCount >= threshold and bearCount > bullCount
-    trend := -1  // BEARISH TREND
-else
-    trend := 0  // NEUTRAL / NO CLEAR TREND
+trend = bullCount >= threshold and bullCount > bearCount ? 1 : 
+        bearCount >= threshold and bearCount > bullCount ? -1 : 0
 
 // ════════════════════════════════════════════════════════════════════════════
 // VISUALIZATION
