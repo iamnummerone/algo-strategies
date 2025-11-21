@@ -58,11 +58,8 @@ ribbonColor = trend == 1 ? color.green : trend == -1 ? color.red : color.gray
 plot(trend, "HTF Trend Value", color=ribbonColor, linewidth=3, style=plot.style_line)
 
 // --- Background Color (optional) ---
-if showBackground
-    bgColor = trend == 1 ? color.new(color.green, 85) : 
-              trend == -1 ? color.new(color.red, 85) : 
-              color.new(color.gray, 88)
-    bgcolor(bgColor, title="Trend Background")
+bgColor = showBackground ? (trend == 1 ? color.new(color.green, 85) : trend == -1 ? color.new(color.red, 85) : color.new(color.gray, 88)) : na
+bgcolor(bgColor, title="Trend Background")
 
 // --- Status Label (top-left corner on last bar) ---
 if barstate.islast
