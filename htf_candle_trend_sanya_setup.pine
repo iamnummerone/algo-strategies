@@ -4,84 +4,53 @@ indicator("HTF Candle Trend (Sanya Setup)", overlay=true)
 // ════════════════════════════════════════════════════════════════════════════
 // INPUTS
 // ════════════════════════════════════════════════════════════════════════════
-htf_tf = input.timeframe("D", "HTF Timeframe")
+htfTimeframe = input.timeframe("D", "HTF Timeframe")
 lookback = input.int(5, "Lookback candles", minval=1, maxval=50)
 minBodyPct = input.float(0.25, "Min body as % of range", minval=0.0, maxval=1.0, step=0.05)
 showBackground = input.bool(true, "Show background color")
 
 // ════════════════════════════════════════════════════════════════════════════
-// HTF DATA RETRIEVAL
+// HTF DATA - CLOSED CANDLES ONLY (NO REPAINTING)
 // ════════════════════════════════════════════════════════════════════════════
-htf_open = request.security(syminfo.tickerid, htf_tf, open)
-htf_high = request.security(syminfo.tickerid, htf_tf, high)
-htf_low = request.security(syminfo.tickerid, htf_tf, low)
-htf_close = request.security(syminfo.tickerid, htf_tf, close)
+htfOpen = request.security(syminfo.tickerid, htfTimeframe, open, barmerge.gaps_off, barmerge.lookahead_on)
+htfHigh = request.security(syminfo.tickerid, htfTimeframe, high, barmerge.gaps_off, barmerge.lookahead_on)
+htfLow = request.security(syminfo.tickerid, htfTimeframe, low, barmerge.gaps_off, barmerge.lookahead_on)
+htfClose = request.security(syminfo.tickerid, htfTimeframe, close, barmerge.gaps_off, barmerge.lookahead_on)
 
 // ════════════════════════════════════════════════════════════════════════════
-// CANDLE CLASSIFICATION LOGIC
+// ANALYZE LAST N CLOSED HTF CANDLES
 // ════════════════════════════════════════════════════════════════════════════
-// Count significant bullish and bearish candles over the lookback period
-int bullCount = 0
-int bearCount = 0
+bullishCount = 0
+bearishCount = 0
 
-// Analyze each of the last 'lookback' HTF candles
-for i = 0 to lookback - 1
-    candle_range = htf_high[i] - htf_low[i]
-    body = math.abs(htf_close[i] - htf_open[i])
+for i = 1 to lookback
+    htfRange = htfHigh[i] - htfLow[i]
+    htfBody = math.abs(htfClose[i] - htfOpen[i])
     
-    // Skip candles with no range (invalid data)
-    if candle_range > 0
-        bodyRatio = body / candle_range
+    if htfRange > 0
+        bodyRatio = htfBody / htfRange
         
-        // Only count candles with significant body (above minimum threshold)
         if bodyRatio >= minBodyPct
-            if htf_close[i] > htf_open[i]
-                bullCount += 1  // Bullish candle
-            else if htf_close[i] < htf_open[i]
-                bearCount += 1  // Bearish candle
-            // If close == open, candle is neutral (not counted)
+            if htfClose[i] > htfOpen[i]
+                bullishCount += 1
+            else if htfClose[i] < htfOpen[i]
+                bearishCount += 1
 
 // ════════════════════════════════════════════════════════════════════════════
 // TREND DETERMINATION
 // ════════════════════════════════════════════════════════════════════════════
-// Threshold is more than half of lookback period
-threshold = math.floor(lookback / 2) + 1
-trend = bullCount >= threshold and bullCount > bearCount ? 1 : bearCount >= threshold and bearCount > bullCount ? -1 : 0
+trend = bullishCount > bearishCount ? 1 : bearishCount > bullishCount ? -1 : 0
 
 // ════════════════════════════════════════════════════════════════════════════
 // VISUALIZATION
 // ════════════════════════════════════════════════════════════════════════════
+trendColor = trend == 1 ? color.green : trend == -1 ? color.red : color.gray
+plot(trend, "HTF Trend", color=trendColor, linewidth=2, style=plot.style_line)
 
-// --- Trend Ribbon (using plot) ---
-// Plot the trend value as a colored line
-ribbonColor = trend == 1 ? color.green : trend == -1 ? color.red : color.gray
-plot(trend, "HTF Trend Value", color=ribbonColor, linewidth=3, style=plot.style_line)
+bgColor = showBackground ? (trend == 1 ? color.new(color.green, 90) : trend == -1 ? color.new(color.red, 90) : color.new(color.gray, 95)) : na
+bgcolor(bgColor)
 
-// --- Background Color (optional) ---
-bgColor = showBackground ? (trend == 1 ? color.new(color.green, 85) : trend == -1 ? color.new(color.red, 85) : color.new(color.gray, 88)) : na
-bgcolor(bgColor, title="Trend Background")
-
-// --- Status Label (top-left corner on last bar) ---
 if barstate.islast
-    // Determine trend text
     trendText = trend == 1 ? "BULL" : trend == -1 ? "BEAR" : "NEUTRAL"
-    labelText = "HTF Candle Trend (" + htf_tf + "): " + trendText + " [B:" + str.tostring(bullCount) + " / Be:" + str.tostring(bearCount) + "]"
-    
-    // Create label at top of chart
-    var label trendLabel = na
-    label.delete(trendLabel)
-    trendLabel := label.new(
-         x=bar_index, 
-         y=high, 
-         text=labelText, 
-         style=label.style_label_down, 
-         color=color.new(color.gray, 30), 
-         textcolor=color.white, 
-         size=size.normal)
-
-// ════════════════════════════════════════════════════════════════════════════
-// ADDITIONAL INFO (for data window / debugging)
-// ════════════════════════════════════════════════════════════════════════════
-plot(bullCount, "Bull Count", color=color.new(color.green, 80), display=display.data_window)
-plot(bearCount, "Bear Count", color=color.new(color.red, 80), display=display.data_window)
-plot(threshold, "Threshold", color=color.new(color.blue, 80), display=display.data_window)
+    labelText = "HTF Trend (" + htfTimeframe + "): " + trendText + " [" + str.tostring(bullishCount) + "/" + str.tostring(bearishCount) + "]"
+    label.new(bar_index, trend, labelText, style=label.style_label_left, color=color.new(color.gray, 20), textcolor=color.white, size=size.small)
