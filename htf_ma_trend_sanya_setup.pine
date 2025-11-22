@@ -12,6 +12,7 @@ slopeLookback  = input.int(3, "Slope lookback (HTF bars)", minval=1, maxval=20)
 minSlopePct    = input.float(0.05, "Min slope per bar (% of price)", minval=0.0, maxval=5.0, step=0.01)
 showTrendLine  = input.bool(true, "Show trend line (+1/0/-1)")
 showBackground = input.bool(true, "Show background color")
+infoBoxOffset  = input.float(1.02, "Info box Y-position multiplier", minval=0.5, maxval=3.0, step=0.01)
 
 // ============================================================================
 // HTF DATA
@@ -76,7 +77,7 @@ if barstate.islast
     txt = "HTF MA Trend (" + htfTimeframe + ", len=" + str.tostring(maLength) + "): " + trendText + 
           "\nSlope: " + slopeText
     
-    infoLabel := label.new(x = bar_index, y = high, text = txt, style = label.style_label_down, color = color.new(color.gray, 25), textcolor = color.white, size = size.normal, textalign = text.align_left)
+    infoLabel := label.new(x = bar_index, y = high * infoBoxOffset, text = txt, style = label.style_label_down, color = color.new(color.gray, 25), textcolor = color.white, size = size.normal, textalign = text.align_left)
 
 // ============================================================================
 // DATA WINDOW / DEBUG
