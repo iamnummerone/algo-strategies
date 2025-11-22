@@ -1,0 +1,221 @@
+//@version=6
+indicator("Custom ATR (Gerchik-style)", overlay=true)
+
+// ========== INPUTS ==========
+atrLength = input.int(7, "ATR Length", options=[5, 7, 9])
+kBig = input.float(1.5, "k Big (max multiplier)", minval=0.1, step=0.1)
+kSmall = input.float(0.5, "k Small (min multiplier)", minval=0.1, step=0.1)
+showMarkers = input.bool(true, "Show Markers on Used Bars")
+showInfoBox = input.bool(true, "Show Info Box")
+
+// ========== DEBUG TOGGLES ==========
+showRawRanges = input.bool(false, "🔍 Show Raw Daily Ranges", group="Debug")
+showDebugPanel = input.bool(false, "🔍 Show Debug Panel (sorted/median)", group="Debug")
+showExcludedBars = input.bool(false, "🔍 Mark Excluded Bars (red dots)", group="Debug")
+
+// ========== DAILY DATA ==========
+dailyHigh = request.security(syminfo.tickerid, "D", high, lookahead=barmerge.lookahead_off)
+dailyLow = request.security(syminfo.tickerid, "D", low, lookahead=barmerge.lookahead_off)
+dailyOpen = request.security(syminfo.tickerid, "D", open, lookahead=barmerge.lookahead_off)
+dailyClose = request.security(syminfo.tickerid, "D", close, lookahead=barmerge.lookahead_off)
+dailyTime = request.security(syminfo.tickerid, "D", time, lookahead=barmerge.lookahead_off)
+dailyRange = dailyHigh - dailyLow
+
+// ========== FILTERING ALGORITHM ==========
+var array<float> finalNormalRanges = array.new<float>()
+var array<int> finalNormalIndices = array.new<int>()
+array.clear(finalNormalRanges)
+array.clear(finalNormalIndices)
+
+// Median index calculation (1-based to 0-based)
+medianIndex = (atrLength + 1) / 2 - 1
+maxLookback = 100
+allCandidates = array.new<float>()
+allIndices = array.new<int>()
+
+// DEBUG: Track excluded bars
+var array<float> excludedRanges = array.new<float>()
+var array<int> excludedIndices = array.new<int>()
+array.clear(excludedRanges)
+array.clear(excludedIndices)
+
+// DEBUG: Store the sorted ranges and median for display
+var array<float> debugSortedRanges = array.new<float>()
+var float debugMedian = na
+array.clear(debugSortedRanges)
+
+// Collect candidates starting from bar[1]
+for i = 1 to maxLookback
+    if na(dailyRange[i])
+        break
+    array.push(allCandidates, dailyRange[i])
+    array.push(allIndices, i)
+    currentSize = array.size(allCandidates)
+
+    // Once we have at least atrLength candidates, do filtering
+    if currentSize >= atrLength
+        // Take last atrLength candidates for median calculation
+        tempForMedian = array.new<float>()
+        startIdx = currentSize - atrLength
+        for j = startIdx to currentSize - 1
+            array.push(tempForMedian, array.get(allCandidates, j))
+
+        // Sort to find median
+        array.sort(tempForMedian, order.ascending)
+        median = array.get(tempForMedian, medianIndex)
+
+        // DEBUG: Store sorted ranges and median
+        array.clear(debugSortedRanges)
+        for j = 0 to array.size(tempForMedian) - 1
+            array.push(debugSortedRanges, array.get(tempForMedian, j))
+
+        debugMedian := median
+
+        // Filter ALL candidates based on median
+        normalRanges = array.new<float>()
+        normalIndices = array.new<int>()
+
+        for k = 0 to currentSize - 1
+            rangeVal = array.get(allCandidates, k)
+            indexVal = array.get(allIndices, k)
+
+            // Check if normal (within bounds)
+            if rangeVal <= median * kBig and rangeVal >= median * kSmall
+                array.push(normalRanges, rangeVal)
+                array.push(normalIndices, indexVal)
+            else
+                // DEBUG: Track excluded bars
+                array.push(excludedRanges, rangeVal)
+                array.push(excludedIndices, indexVal)
+
+        // If we have enough normal bars, we're done
+        if array.size(normalRanges) >= atrLength
+            // Take only first atrLength
+            for m = 0 to atrLength - 1
+                array.push(finalNormalRanges, array.get(normalRanges, m))
+                array.push(finalNormalIndices, array.get(normalIndices, m))
+            break
+
+// ========== CALCULATE ATR ==========
+var float atrClean = na
+
+if array.size(finalNormalRanges) == atrLength
+    sum = 0.0
+    for i = 0 to atrLength - 1
+        sum += array.get(finalNormalRanges, i)
+    atrClean := sum / atrLength
+
+// ========== DISTANCE FROM TODAY'S OPEN ==========
+distance = math.abs(close - dailyOpen)
+percentUsed = atrClean > 0 ? (distance / atrClean) * 100 : 0
+remainingPoints = math.max(atrClean - distance, 0)
+remainingPercent = math.max(100 - percentUsed, 0)
+
+// Check if current day is closed
+isNewDay = ta.change(dailyTime) != 0
+isDayClosed = isNewDay and not barstate.isrealtime
+
+// ========== DISPLAY MARKERS ==========
+var array<label> markerLabels = array.new<label>()
+
+if showMarkers and barstate.islast and array.size(finalNormalIndices) > 0
+    if array.size(markerLabels) > 0
+        for i = 0 to array.size(markerLabels) - 1
+            label.delete(array.get(markerLabels, i))
+    array.clear(markerLabels)
+
+    for i = 0 to array.size(finalNormalIndices) - 1
+        barIdx = array.get(finalNormalIndices, i)
+        if barIdx > 0 and barIdx < 500
+            marker = label.new(bar_index - barIdx, low[barIdx] * 0.9995, "●", style=label.style_none, color=color.new(color.blue, 100), textcolor=color.new(color.fuchsia, 0), size=size.tiny)
+            array.push(markerLabels, marker)
+
+// ========== INFO BOX ==========
+if showInfoBox and barstate.islast
+    var label infoLabel = na
+    label.delete(infoLabel)
+
+    statusText = isDayClosed ? "\n(Day closed)" : ""
+    atrDisplay = na(atrClean) or atrClean == 0 ? "N/A" : str.tostring(atrClean, "#.##")
+
+    labelText = str.format("ATR ({0} bars): {1}\nUsed: {2}%%\nRemaining: {3} ({4}%%){5}", atrLength, atrDisplay, str.tostring(percentUsed, "#.#"), str.tostring(remainingPoints, "#.##"), str.tostring(remainingPercent, "#.#"), statusText)
+
+    boxY = ta.highest(high, 50) * 1.01
+
+    infoLabel := label.new(bar_index, boxY, labelText, style=label.style_label_down, color=color.new(color.gray, 20), textcolor=color.white, size=size.normal, textalign=text.align_left)
+
+// ========== DEBUG: RAW DAILY RANGES LABELS ==========
+var array<label> rawRangeLabels = array.new<label>()
+
+if showRawRanges and barstate.islast and array.size(finalNormalIndices) > 0
+    if array.size(rawRangeLabels) > 0
+        for i = 0 to array.size(rawRangeLabels) - 1
+            label.delete(array.get(rawRangeLabels, i))
+    array.clear(rawRangeLabels)
+
+    for i = 0 to array.size(finalNormalIndices) - 1
+        barIdx = array.get(finalNormalIndices, i)
+        rangeVal = array.get(finalNormalRanges, i)
+
+        if barIdx > 0 and barIdx < 500
+            labelY = high[barIdx] * 1.005
+            rangeLabel = label.new(bar_index - barIdx, labelY, str.format("R: {0}", str.tostring(rangeVal, "#.##")), style=label.style_none, color=color.new(color.gray, 100), textcolor=color.new(color.gray, 30), size=size.tiny, textalign=text.align_center)
+
+            array.push(rawRangeLabels, rangeLabel)
+
+// ========== DEBUG: SORTED RANGES PANEL ==========
+if showDebugPanel and barstate.islast and array.size(finalNormalRanges) > 0
+    var label debugPanelLabel = na
+    label.delete(debugPanelLabel)
+
+    unsortedText = "Used ranges (unsorted):\n"
+    for i = 0 to array.size(finalNormalRanges) - 1
+        unsortedText += str.tostring(array.get(finalNormalRanges, i), "#.##") + " "
+
+    sortedText = "\n\nSorted ranges:\n"
+    for i = 0 to array.size(debugSortedRanges) - 1
+        sortedText += str.tostring(array.get(debugSortedRanges, i), "#.##") + " "
+
+    medianText = str.format("\n\nMedian value: {0}", str.tostring(debugMedian, "#.##"))
+
+    excludedText = "\n\nExcluded bars:\n"
+    if array.size(excludedRanges) > 0
+        for i = 0 to array.size(excludedRanges) - 1
+            excludedText += str.tostring(array.get(excludedRanges, i), "#.##") + " "
+    else
+        excludedText += "None"
+
+    debugText = unsortedText + sortedText + medianText + excludedText
+
+    debugPanelLabel := label.new(bar_index, high * 1.03, debugText, style=label.style_label_down, color=color.new(color.gray, 70), textcolor=color.white, size=size.small, textalign=text.align_left)
+
+// ========== DEBUG: MARK EXCLUDED BARS ==========
+var array<label> excludedMarkers = array.new<label>()
+
+if showExcludedBars and barstate.islast and array.size(excludedIndices) > 0
+    if array.size(excludedMarkers) > 0
+        for i = 0 to array.size(excludedMarkers) - 1
+            label.delete(array.get(excludedMarkers, i))
+    array.clear(excludedMarkers)
+
+    for i = 0 to array.size(excludedIndices) - 1
+        barIdx = array.get(excludedIndices, i)
+        if barIdx > 0 and barIdx < 500
+            marker = label.new(bar_index - barIdx, high[barIdx] * 1.01, "●", style=label.style_none, color=color.new(color.red, 100), textcolor=color.new(color.red, 0), size=size.tiny)
+            array.push(excludedMarkers, marker)
+
+// ========== PLOTS ==========
+plot(atrClean, "ATR Clean", color=color.blue, linewidth=2)
+hline(0, "Zero", color=color.new(color.gray, 80))
+
+// ATR_bar: Simple range of daily bar
+atrBarRange = dailyRange
+plot(atrBarRange, "ATR_bar (high-low of this bar)", color=color.new(color.blue, 100))
+
+// ATR_len: Clean filtered ATR
+atrCleanSeries = atrClean
+plot(atrCleanSeries, "ATR_len (clean ATR over N bars)", color=color.new(color.orange, 100))
+
+// Additional stats
+plot(percentUsed, "Used %", display=display.data_window, color=color.red)
+plot(remainingPercent, "Remaining %", display=display.data_window, color=color.green)
