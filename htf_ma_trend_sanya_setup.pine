@@ -1,0 +1,99 @@
+//@version=6
+indicator("HTF MA Trend (Sanya Setup)", overlay=true)
+
+// ============================================================================
+// INPUTS
+// ============================================================================
+
+htfTimeframe   = input.timeframe("D", "HTF Timeframe")
+maLength       = input.int(50, "MA Length", minval=1, maxval=500)
+maSource       = input.source(close, "Price source for MA")
+slopeLookback  = input.int(3, "Slope lookback (HTF bars)", minval=1, maxval=20)
+minSlopePct    = input.float(0.05, "Min slope per bar (% of price)", minval=0.0, maxval=5.0, step=0.01)
+showBackground = input.bool(true, "Show background color")
+
+// ============================================================================
+// HTF DATA
+// ============================================================================
+
+// Request HTF data using closed bars only (no repaint)
+// Using lookahead=on with gaps_off ensures we get the last closed HTF bar value
+htfClose = request.security(syminfo.tickerid, htfTimeframe, maSource, barmerge.gaps_off, barmerge.lookahead_on)
+
+// Calculate Simple Moving Average on HTF data
+htfMA = ta.sma(htfClose, maLength)
+
+// ============================================================================
+// CORE LOGIC
+// ============================================================================
+
+// Calculate MA slope over the specified lookback period
+slope = htfMA - htfMA[slopeLookback]
+slopePerBar = slope / slopeLookback
+
+// Convert slope to percentage per bar relative to current MA value
+slopePct = na(htfMA) or htfMA == 0.0 ? na : (slopePerBar / htfMA) * 100.0
+
+// Determine if slope meets minimum threshold
+isBullSlope = not na(slopePct) and slopePct >= minSlopePct
+isBearSlope = not na(slopePct) and slopePct <= -minSlopePct
+
+// Determine trend based on price vs MA and slope conditions
+trend = float(na)
+
+if not na(htfClose) and not na(htfMA)
+    if htfClose > htfMA and isBullSlope
+        trend := 1.0
+    else if htfClose < htfMA and isBearSlope
+        trend := -1.0
+    else
+        trend := 0.0
+else
+    trend := na
+
+// ============================================================================
+// VISUALIZATION
+// ============================================================================
+
+// Plot trend line (visible on chart with color coding)
+trendColor = trend == 1 ? color.green : trend == -1 ? color.red : color.gray
+plot(trend, title="HTF MA Trend Value", color=trendColor, linewidth=3, style=plot.style_line)
+
+// Background coloring
+bgColor = showBackground ? 
+     (trend == 1 ? color.new(color.green, 85) : 
+      trend == -1 ? color.new(color.red, 85) : 
+      color.new(color.gray, 90)) : na
+bgcolor(bgColor, title="MA Trend Background")
+
+// Status label on the last bar
+if barstate.islast
+    var label infoLabel = na
+    label.delete(infoLabel)
+    
+    trendText = trend == 1 ? "BULL" : trend == -1 ? "BEAR" : "NEUTRAL"
+    sign = na(slopePct) ? "" : slopePct >= 0 ? "+" : ""
+    slopeText = na(slopePct) ? "N/A" : sign + str.tostring(slopePct, "#.##") + "%/bar"
+    
+    txt = "HTF MA Trend (" + htfTimeframe + ", len=" + str.tostring(maLength) + "): " + trendText + 
+          "\nSlope: " + slopeText
+    
+    infoLabel := label.new(
+        x = bar_index,
+        y = high * 1.005,  // Slightly above high to avoid overlap
+        text = txt,
+        style = label.style_label_down,
+        color = color.new(color.gray, 25),
+        textcolor = color.white,
+        size = size.normal,
+        textalign = text.align_left)
+
+// ============================================================================
+// DATA WINDOW / DEBUG
+// ============================================================================
+
+// Additional plots for data window (not visible on chart)
+plot(trend, "MA Trend (+1/0/-1)", display=display.data_window, color=color.new(color.white, 100))
+plot(htfMA, "HTF MA", display=display.data_window, color=color.new(color.white, 100))
+plot(htfClose, "HTF Close", display=display.data_window, color=color.new(color.white, 100))
+plot(slopePct, "Slope % per bar", display=display.data_window, color=color.new(color.white, 100))
