@@ -74,7 +74,7 @@ if barstate.islast
     
     infoLabel := label.new(
         x = bar_index,
-        y = high * 1.005,  // Slightly above high to avoid overlap
+        y = high,
         text = txt,
         style = label.style_label_down,
         color = color.new(color.gray, 25),
@@ -88,6 +88,5 @@ if barstate.islast
 
 // Additional plots for data window (not visible on chart)
 plot(trend, "MA Trend (+1/0/-1)", display=display.data_window, color=color.new(color.white, 100))
-plot(htfMA, "HTF MA", display=display.data_window, color=color.new(color.white, 100))
-plot(htfClose, "HTF Close", display=display.data_window, color=color.new(color.white, 100))
-plot(slopePct, "Slope % per bar", display=display.data_window, color=color.new(color.white, 100))
+plot(htfMA, "HTF MA", display=display.data_window)
+plot(slopePct, "Slope % per bar", display=display.data_window)
