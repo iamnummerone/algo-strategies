@@ -66,7 +66,7 @@ if barstate.islast
     label.delete(infoLabel)
     
     trendText = trend == 1 ? "BULL" : trend == -1 ? "BEAR" : "NEUTRAL"
-    sign = na(slopePct) ? "" : slopePct >= 0 ? "+" : ""
+    sign = slopePct >= 0 ? "+" : ""
     slopeText = na(slopePct) ? "N/A" : sign + str.tostring(slopePct, "#.##") + "%/bar"
     
     txt = "HTF MA Trend (" + htfTimeframe + ", len=" + str.tostring(maLength) + "): " + trendText + 
