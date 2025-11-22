@@ -72,15 +72,7 @@ if barstate.islast
     txt = "HTF MA Trend (" + htfTimeframe + ", len=" + str.tostring(maLength) + "): " + trendText + 
           "\nSlope: " + slopeText
     
-    infoLabel := label.new(
-        x = bar_index,
-        y = high,
-        text = txt,
-        style = label.style_label_down,
-        color = color.new(color.gray, 25),
-        textcolor = color.white,
-        size = size.normal,
-        textalign = text.align_left)
+    infoLabel := label.new(x = bar_index, y = high, text = txt, style = label.style_label_down, color = color.new(color.gray, 25), textcolor = color.white, size = size.normal, textalign = text.align_left)
 
 // ============================================================================
 // DATA WINDOW / DEBUG
