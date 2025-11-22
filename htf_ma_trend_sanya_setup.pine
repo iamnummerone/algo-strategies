@@ -28,28 +28,22 @@ htfMA = ta.sma(htfClose, maLength)
 // ============================================================================
 
 // Calculate MA slope over the specified lookback period
-slope = htfMA - htfMA[slopeLookback]
-slopePerBar = slope / slopeLookback
+slope = (htfMA - htfMA[slopeLookback]) / slopeLookback
 
 // Convert slope to percentage per bar relative to current MA value
-slopePct = na(htfMA) or htfMA == 0.0 ? na : (slopePerBar / htfMA) * 100.0
+slopePct = na(htfMA) or htfMA == 0.0 ? na : (slope / htfMA) * 100.0
 
 // Determine if slope meets minimum threshold
-isBullSlope = not na(slopePct) and slopePct >= minSlopePct
-isBearSlope = not na(slopePct) and slopePct <= -minSlopePct
+isBullSlope = slopePct >= minSlopePct
+isBearSlope = slopePct <= -minSlopePct
 
 // Determine trend based on price vs MA and slope conditions
-trend = float(na)
-
-if not na(htfClose) and not na(htfMA)
-    if htfClose > htfMA and isBullSlope
-        trend := 1.0
-    else if htfClose < htfMA and isBearSlope
-        trend := -1.0
-    else
-        trend := 0.0
+trend = if htfClose > htfMA and isBullSlope
+    1.0
+else if htfClose < htfMA and isBearSlope
+    -1.0
 else
-    trend := na
+    0.0
 
 // ============================================================================
 // VISUALIZATION
