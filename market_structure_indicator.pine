@@ -11,8 +11,10 @@ minSwingBars = input.int(2, "Minimum Swing Distance", minval=1, tooltip="Minimum
 breakBuffer = input.float(0.0005, "Break Buffer %", minval=0, maxval=0.01, step=0.0001, tooltip="Buffer to avoid false breaks (% of price)")
 
 showLabels = input.bool(true, "Show BOS/CHoCH Labels", group="Display")
-showSwingLines = input.bool(true, "Show Swing Range Lines", group="Display")
+showSwingLines = input.bool(false, "Show Swing Range Lines", group="Display", tooltip="Show the upper/lower range box with 'Swing <TF>' label")
+showActiveSwingLines = input.bool(false, "Show Active Swing Lines", group="Display", tooltip="Show extending dotted lines for last unbroken swing high/low")
 showSwingDots = input.bool(true, "Show Swing Dots", group="Display")
+showBreakBoxes = input.bool(true, "Show Breakout Boxes", group="Display", tooltip="Draw small colored box around BOS/CHoCH candles")
 maxHistorySwings = input.int(200, "Max History Swings", minval=50, maxval=500, group="Display")
 
 // Colors
@@ -110,12 +112,13 @@ if swingHighDetected and (bar_index - lastSwingHighBar) >= minSwingBars
         array.shift(swingIndex)
         array.shift(swingIsHigh)
     
-    // Draw swing dot with offset above the high - make it very small and subtle
+    // Draw swing dot with offset above the high - tiny text dot
     if showSwingDots
-        offsetPrice = htfHigh[swingLen] + (atrValue * 0.03)
-        label.new(bar_index - swingLen, offsetPrice, "", 
-                  style=label.style_circle, 
-                  color=color.new(color.gray, 40), 
+        offsetPrice = htfHigh[swingLen] + (atrValue * 0.05)
+        label.new(bar_index - swingLen, offsetPrice, "•", 
+                  style=label.style_none, 
+                  color=color.new(color.white, 100), 
+                  textcolor=color.new(color.gray, 70), 
                   size=size.tiny)
     
     // Update last unbroken swing high
@@ -135,12 +138,13 @@ if swingLowDetected and (bar_index - lastSwingLowBar) >= minSwingBars
         array.shift(swingIndex)
         array.shift(swingIsHigh)
     
-    // Draw swing dot with offset below the low - make it very small and subtle
+    // Draw swing dot with offset below the low - tiny text dot
     if showSwingDots
-        offsetPrice = htfLow[swingLen] - (atrValue * 0.03)
-        label.new(bar_index - swingLen, offsetPrice, "", 
-                  style=label.style_circle, 
-                  color=color.new(color.gray, 40), 
+        offsetPrice = htfLow[swingLen] - (atrValue * 0.05)
+        label.new(bar_index - swingLen, offsetPrice, "•", 
+                  style=label.style_none, 
+                  color=color.new(color.white, 100), 
+                  textcolor=color.new(color.gray, 70), 
                   size=size.tiny)
     
     // Update last unbroken swing low
@@ -234,38 +238,39 @@ prevSwingLow = getPrevSwingLow()
 // Calculate buffer
 buffer = htfClose * breakBuffer
 
-// Update extending lines for unbroken swings
-if not na(lastUnbrokenSwingHigh) and not na(lastUnbrokenSwingHighBar)
-    // Delete old line and label
-    if not na(activeSwingHighLine)
-        line.delete(activeSwingHighLine)
-    if not na(activeSwingHighLabel)
-        label.delete(activeSwingHighLabel)
-    
-    // Limit how far back the line can start (max 500 bars)
-    lineStartBar = math.max(lastUnbrokenSwingHighBar, bar_index - 500)
-    
-    // Draw new extending line
-    activeSwingHighLine := line.new(lineStartBar, lastUnbrokenSwingHigh, bar_index, lastUnbrokenSwingHigh, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
-    
-    // Add label
-    activeSwingHighLabel := label.new(bar_index, lastUnbrokenSwingHigh, "Swing High", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(color.gray, 30), size=size.tiny)
+// Update extending lines for unbroken swings (optional)
+if showActiveSwingLines
+    if not na(lastUnbrokenSwingHigh) and not na(lastUnbrokenSwingHighBar)
+        // Delete old line and label
+        if not na(activeSwingHighLine)
+            line.delete(activeSwingHighLine)
+        if not na(activeSwingHighLabel)
+            label.delete(activeSwingHighLabel)
+        
+        // Limit how far back the line can start (max 500 bars)
+        lineStartBar = math.max(lastUnbrokenSwingHighBar, bar_index - 500)
+        
+        // Draw new extending line
+        activeSwingHighLine := line.new(lineStartBar, lastUnbrokenSwingHigh, bar_index, lastUnbrokenSwingHigh, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
+        
+        // Add label
+        activeSwingHighLabel := label.new(bar_index, lastUnbrokenSwingHigh, "Swing High", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(color.gray, 30), size=size.tiny)
 
-if not na(lastUnbrokenSwingLow) and not na(lastUnbrokenSwingLowBar)
-    // Delete old line and label
-    if not na(activeSwingLowLine)
-        line.delete(activeSwingLowLine)
-    if not na(activeSwingLowLabel)
-        label.delete(activeSwingLowLabel)
-    
-    // Limit how far back the line can start (max 500 bars)
-    lineStartBar = math.max(lastUnbrokenSwingLowBar, bar_index - 500)
-    
-    // Draw new extending line
-    activeSwingLowLine := line.new(lineStartBar, lastUnbrokenSwingLow, bar_index, lastUnbrokenSwingLow, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
-    
-    // Add label
-    activeSwingLowLabel := label.new(bar_index, lastUnbrokenSwingLow, "Swing Low", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(color.gray, 30), size=size.tiny)
+    if not na(lastUnbrokenSwingLow) and not na(lastUnbrokenSwingLowBar)
+        // Delete old line and label
+        if not na(activeSwingLowLine)
+            line.delete(activeSwingLowLine)
+        if not na(activeSwingLowLabel)
+            label.delete(activeSwingLowLabel)
+        
+        // Limit how far back the line can start (max 500 bars)
+        lineStartBar = math.max(lastUnbrokenSwingLowBar, bar_index - 500)
+        
+        // Draw new extending line
+        activeSwingLowLine := line.new(lineStartBar, lastUnbrokenSwingLow, bar_index, lastUnbrokenSwingLow, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
+        
+        // Add label
+        activeSwingLowLabel := label.new(bar_index, lastUnbrokenSwingLow, "Swing Low", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(color.gray, 30), size=size.tiny)
 
 // BOS & CHoCH Detection
 if not na(lastSwingHigh) and not na(lastSwingLow)
@@ -280,6 +285,12 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
                 line.new(lineStart, lastSwingHigh, bar_index, lastSwingHigh, color=color.new(colorBullish, 40), width=1, style=line.style_solid)
                 // Draw label slightly above the line
                 label.new(bar_index, lastSwingHigh + (atrValue * 0.02), "CHoCH", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBullish, 10), size=size.tiny)
+            
+            // Draw breakout box around candle
+            if showBreakBoxes
+                boxTop = high + (atrValue * 0.01)
+                boxBottom = low - (atrValue * 0.01)
+                box.new(bar_index, boxTop, bar_index, boxBottom, border_color=color.new(colorBullish, 0), bgcolor=color.new(colorBullish, 85))
             trendDir := 1
             array.push(brokenLevels, lastSwingHigh)
             
@@ -302,6 +313,12 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
                 line.new(lineStart, lastSwingHigh, bar_index, lastSwingHigh, color=color.new(colorBullish, 40), width=1, style=line.style_solid)
                 // Draw label slightly above the line
                 label.new(bar_index, lastSwingHigh + (atrValue * 0.02), "BOS", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBullish, 10), size=size.tiny)
+            
+            // Draw breakout box around candle
+            if showBreakBoxes
+                boxTop = high + (atrValue * 0.01)
+                boxBottom = low - (atrValue * 0.01)
+                box.new(bar_index, boxTop, bar_index, boxBottom, border_color=color.new(colorBullish, 0), bgcolor=color.new(colorBullish, 85))
             array.push(brokenLevels, lastSwingHigh)
             
             // Stop extending the swing high line (it's been broken)
@@ -327,6 +344,12 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
                 line.new(lineStart, lastSwingLow, bar_index, lastSwingLow, color=color.new(colorBearish, 40), width=1, style=line.style_solid)
                 // Draw label slightly below the line
                 label.new(bar_index, lastSwingLow - (atrValue * 0.02), "CHoCH", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBearish, 10), size=size.tiny)
+            
+            // Draw breakout box around candle
+            if showBreakBoxes
+                boxTop = high + (atrValue * 0.01)
+                boxBottom = low - (atrValue * 0.01)
+                box.new(bar_index, boxTop, bar_index, boxBottom, border_color=color.new(colorBearish, 0), bgcolor=color.new(colorBearish, 85))
             trendDir := -1
             array.push(brokenLevels, lastSwingLow)
             
@@ -349,6 +372,12 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
                 line.new(lineStart, lastSwingLow, bar_index, lastSwingLow, color=color.new(colorBearish, 40), width=1, style=line.style_solid)
                 // Draw label slightly below the line
                 label.new(bar_index, lastSwingLow - (atrValue * 0.02), "BOS", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBearish, 10), size=size.tiny)
+            
+            // Draw breakout box around candle
+            if showBreakBoxes
+                boxTop = high + (atrValue * 0.01)
+                boxBottom = low - (atrValue * 0.01)
+                box.new(bar_index, boxTop, bar_index, boxBottom, border_color=color.new(colorBearish, 0), bgcolor=color.new(colorBearish, 85))
             array.push(brokenLevels, lastSwingLow)
             
             // Stop extending the swing low line (it's been broken)
