@@ -41,27 +41,11 @@ if not na(pivotHigh)
     
     // Draw swing high dot
     if show_swings
-        label.new(
-            lastPivotHighBar, 
-            pivotHigh + dotOffset, 
-            "•", 
-            color=color.new(color.white, 100), 
-            style=label.style_none, 
-            textcolor=dot_color, 
-            size=size.tiny
-        )
+        label.new(lastPivotHighBar, pivotHigh + dotOffset, "•", color=color.new(color.white, 100), style=label.style_none, textcolor=dot_color, size=size.tiny)
         
         // Optional swing label
         if show_swing_labels
-            label.new(
-                lastPivotHighBar, 
-                pivotHigh + dotOffset * 2.5, 
-                "SWING H", 
-                color=color.new(color.white, 100), 
-                style=label.style_none, 
-                textcolor=color.new(color.gray, 60), 
-                size=size.tiny
-            )
+            label.new(lastPivotHighBar, pivotHigh + dotOffset * 2.5, "SWING H", color=color.new(color.white, 100), style=label.style_none, textcolor=color.new(color.gray, 60), size=size.tiny)
 
 // Update last pivot low
 if not na(pivotLow)
@@ -70,27 +54,11 @@ if not na(pivotLow)
     
     // Draw swing low dot
     if show_swings
-        label.new(
-            lastPivotLowBar, 
-            pivotLow - dotOffset, 
-            "•", 
-            color=color.new(color.white, 100), 
-            style=label.style_none, 
-            textcolor=dot_color, 
-            size=size.tiny
-        )
+        label.new(lastPivotLowBar, pivotLow - dotOffset, "•", color=color.new(color.white, 100), style=label.style_none, textcolor=dot_color, size=size.tiny)
         
         // Optional swing label
         if show_swing_labels
-            label.new(
-                lastPivotLowBar, 
-                pivotLow - dotOffset * 2.5, 
-                "SWING L", 
-                color=color.new(color.white, 100), 
-                style=label.style_none, 
-                textcolor=color.new(color.gray, 60), 
-                size=size.tiny
-            )
+            label.new(lastPivotLowBar, pivotLow - dotOffset * 2.5, "SWING L", color=color.new(color.white, 100), style=label.style_none, textcolor=color.new(color.gray, 60), size=size.tiny)
 
 // ============================================================================
 // BOS / MSS DETECTION
@@ -114,45 +82,15 @@ if not na(lastPivotHigh) and not na(lastPivotHighBar)
             // Bullish trend continues = BOS
             bullBOS := true
             if show_bos
-                line.new(
-                    lastPivotHighBar, 
-                    lastPivotHigh, 
-                    bar_index, 
-                    lastPivotHigh, 
-                    color=bull_color, 
-                    width=1
-                )
-                label.new(
-                    bar_index, 
-                    lastPivotHigh + dotOffset * 2, 
-                    "BOS", 
-                    color=color.new(color.white, 100), 
-                    style=label.style_none, 
-                    textcolor=bull_color, 
-                    size=size.tiny
-                )
+                line.new(lastPivotHighBar, lastPivotHigh, bar_index, lastPivotHigh, color=bull_color, width=1)
+                label.new(bar_index, lastPivotHigh + dotOffset * 2, "BOS", color=color.new(color.white, 100), style=label.style_none, textcolor=bull_color, size=size.tiny)
         else
             // Bearish to bullish = MSS (reversal)
             bullMSS := true
             isBullish := true
             if show_bos
-                line.new(
-                    lastPivotHighBar, 
-                    lastPivotHigh, 
-                    bar_index, 
-                    lastPivotHigh, 
-                    color=bull_color, 
-                    width=1
-                )
-                label.new(
-                    bar_index, 
-                    lastPivotHigh + dotOffset * 2, 
-                    "MSS", 
-                    color=color.new(color.white, 100), 
-                    style=label.style_none, 
-                    textcolor=bull_color, 
-                    size=size.tiny
-                )
+                line.new(lastPivotHighBar, lastPivotHigh, bar_index, lastPivotHigh, color=bull_color, width=1)
+                label.new(bar_index, lastPivotHigh + dotOffset * 2, "MSS", color=color.new(color.white, 100), style=label.style_none, textcolor=bull_color, size=size.tiny)
 
 if not na(lastPivotLow) and not na(lastPivotLowBar)
     // Close breaks below pivot low
@@ -161,45 +99,15 @@ if not na(lastPivotLow) and not na(lastPivotLowBar)
             // Bearish trend continues = BOS
             bearBOS := true
             if show_bos
-                line.new(
-                    lastPivotLowBar, 
-                    lastPivotLow, 
-                    bar_index, 
-                    lastPivotLow, 
-                    color=bear_color, 
-                    width=1
-                )
-                label.new(
-                    bar_index, 
-                    lastPivotLow - dotOffset * 2, 
-                    "BOS", 
-                    color=color.new(color.white, 100), 
-                    style=label.style_none, 
-                    textcolor=bear_color, 
-                    size=size.tiny
-                )
+                line.new(lastPivotLowBar, lastPivotLow, bar_index, lastPivotLow, color=bear_color, width=1)
+                label.new(bar_index, lastPivotLow - dotOffset * 2, "BOS", color=color.new(color.white, 100), style=label.style_none, textcolor=bear_color, size=size.tiny)
         else
             // Bullish to bearish = MSS (reversal)
             bearMSS := true
             isBullish := false
             if show_bos
-                line.new(
-                    lastPivotLowBar, 
-                    lastPivotLow, 
-                    bar_index, 
-                    lastPivotLow, 
-                    color=bear_color, 
-                    width=1
-                )
-                label.new(
-                    bar_index, 
-                    lastPivotLow - dotOffset * 2, 
-                    "MSS", 
-                    color=color.new(color.white, 100), 
-                    style=label.style_none, 
-                    textcolor=bear_color, 
-                    size=size.tiny
-                )
+                line.new(lastPivotLowBar, lastPivotLow, bar_index, lastPivotLow, color=bear_color, width=1)
+                label.new(bar_index, lastPivotLow - dotOffset * 2, "MSS", color=color.new(color.white, 100), style=label.style_none, textcolor=bear_color, size=size.tiny)
 
 // ============================================================================
 // ALERTS
