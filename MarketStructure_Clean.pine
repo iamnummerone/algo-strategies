@@ -1,0 +1,127 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © YourUsername
+
+//@version=6
+indicator("Market Structure - Clean", overlay=true, max_labels_count=500, max_lines_count=500)
+
+// ============================================================================
+// INPUTS
+// ============================================================================
+pivot_strength = input.int(5, "Pivot Strength", minval=1, maxval=50)
+show_swings = input.bool(true, "Show Swing Points")
+show_swing_labels = input.bool(false, "Show Swing High/Low Labels")
+show_bos = input.bool(true, "Show BOS/MSS")
+bull_color = input.color(color.new(color.green, 40), "Bullish Color")
+bear_color = input.color(color.new(color.red, 40), "Bearish Color")
+dot_color = input.color(color.new(color.gray, 70), "Swing Dot Color")
+
+// ============================================================================
+// VARIABLES
+// ============================================================================
+var bool isBullish = true  // Trend state (true = bullish, false = bearish)
+var float lastPivotHigh = na
+var int lastPivotHighBar = na
+var float lastPivotLow = na
+var int lastPivotLowBar = na
+
+// ATR for offset calculation
+atrValue = ta.atr(14)
+dotOffset = atrValue * 0.05
+
+// ============================================================================
+// PIVOT DETECTION
+// ============================================================================
+pivotHigh = ta.pivothigh(high, pivot_strength, pivot_strength)
+pivotLow = ta.pivotlow(low, pivot_strength, pivot_strength)
+
+// Update last pivot high
+if not na(pivotHigh)
+    lastPivotHigh := pivotHigh
+    lastPivotHighBar := bar_index - pivot_strength
+    
+    // Draw swing high dot
+    if show_swings
+        label.new(lastPivotHighBar, pivotHigh + dotOffset, "•", color=color.new(color.white, 100), style=label.style_none, textcolor=dot_color, size=size.tiny)
+        
+        // Optional swing label
+        if show_swing_labels
+            label.new(lastPivotHighBar, pivotHigh + dotOffset * 2.5, "SWING H", color=color.new(color.white, 100), style=label.style_none, textcolor=color.new(color.gray, 60), size=size.tiny)
+
+// Update last pivot low
+if not na(pivotLow)
+    lastPivotLow := pivotLow
+    lastPivotLowBar := bar_index - pivot_strength
+    
+    // Draw swing low dot
+    if show_swings
+        label.new(lastPivotLowBar, pivotLow - dotOffset, "•", color=color.new(color.white, 100), style=label.style_none, textcolor=dot_color, size=size.tiny)
+        
+        // Optional swing label
+        if show_swing_labels
+            label.new(lastPivotLowBar, pivotLow - dotOffset * 2.5, "SWING L", color=color.new(color.white, 100), style=label.style_none, textcolor=color.new(color.gray, 60), size=size.tiny)
+
+// ============================================================================
+// BOS / MSS DETECTION
+// ============================================================================
+var bool bullBOS = false
+var bool bearBOS = false
+var bool bullMSS = false
+var bool bearMSS = false
+
+// Reset signals
+bullBOS := false
+bearBOS := false
+bullMSS := false
+bearMSS := false
+
+// Check for breaks (using close)
+if not na(lastPivotHigh) and not na(lastPivotHighBar)
+    // Close breaks above pivot high
+    if close > lastPivotHigh
+        if isBullish
+            // Bullish trend continues = BOS
+            bullBOS := true
+            if show_bos
+                line.new(lastPivotHighBar, lastPivotHigh, bar_index, lastPivotHigh, color=bull_color, width=1)
+                label.new(bar_index, lastPivotHigh + dotOffset * 2, "BOS", color=color.new(color.white, 100), style=label.style_none, textcolor=bull_color, size=size.tiny)
+        else
+            // Bearish to bullish = MSS (reversal)
+            bullMSS := true
+            isBullish := true
+            if show_bos
+                line.new(lastPivotHighBar, lastPivotHigh, bar_index, lastPivotHigh, color=bull_color, width=1)
+                label.new(bar_index, lastPivotHigh + dotOffset * 2, "MSS", color=color.new(color.white, 100), style=label.style_none, textcolor=bull_color, size=size.tiny)
+
+if not na(lastPivotLow) and not na(lastPivotLowBar)
+    // Close breaks below pivot low
+    if close < lastPivotLow
+        if not isBullish
+            // Bearish trend continues = BOS
+            bearBOS := true
+            if show_bos
+                line.new(lastPivotLowBar, lastPivotLow, bar_index, lastPivotLow, color=bear_color, width=1)
+                label.new(bar_index, lastPivotLow - dotOffset * 2, "BOS", color=color.new(color.white, 100), style=label.style_none, textcolor=bear_color, size=size.tiny)
+        else
+            // Bullish to bearish = MSS (reversal)
+            bearMSS := true
+            isBullish := false
+            if show_bos
+                line.new(lastPivotLowBar, lastPivotLow, bar_index, lastPivotLow, color=bear_color, width=1)
+                label.new(bar_index, lastPivotLow - dotOffset * 2, "MSS", color=color.new(color.white, 100), style=label.style_none, textcolor=bear_color, size=size.tiny)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+alertcondition(bullBOS or bearBOS or bullMSS or bearMSS, "Any BOS or MSS", "Market Structure Event Detected")
+alertcondition(bullBOS or bullMSS, "Any Bullish Event", "Bullish BOS or MSS Detected")
+alertcondition(bearBOS or bearMSS, "Any Bearish Event", "Bearish BOS or MSS Detected")
+alertcondition(bullBOS, "Bullish BOS", "Bullish Break of Structure")
+alertcondition(bearBOS, "Bearish BOS", "Bearish Break of Structure")
+alertcondition(bullMSS, "Bullish MSS", "Bullish Market Structure Shift (Reversal)")
+alertcondition(bearMSS, "Bearish MSS", "Bearish Market Structure Shift (Reversal)")
+
+// ============================================================================
+// PLOT (Optional - for debugging)
+// ============================================================================
+// Uncomment to see trend state
+// plot(isBullish ? 1 : 0, "Trend", color=isBullish ? color.green : color.red, display=display.data_window)
