@@ -46,6 +46,17 @@ var swingIsHigh = array.new_bool(0)
 var int lastSwingHighBar = -999999
 var int lastSwingLowBar = -999999
 
+// Storage for last unbroken swing high/low (for extending lines)
+var float lastUnbrokenSwingHigh = na
+var int lastUnbrokenSwingHighBar = na
+var line activeSwingHighLine = na
+var label activeSwingHighLabel = na
+
+var float lastUnbrokenSwingLow = na
+var int lastUnbrokenSwingLowBar = na
+var line activeSwingLowLine = na
+var label activeSwingLowLabel = na
+
 // Function to check if a swing high exists at the center
 isSwingHigh(len) =>
     if bar_index < len
@@ -153,17 +164,6 @@ var line lowerRangeLine = na
 var label rangeLabel = na
 var float currentRangeHigh = na
 var float currentRangeLow = na
-
-// Storage for last unbroken swing high/low (for extending lines)
-var float lastUnbrokenSwingHigh = na
-var int lastUnbrokenSwingHighBar = na
-var line activeSwingHighLine = na
-var label activeSwingHighLabel = na
-
-var float lastUnbrokenSwingLow = na
-var int lastUnbrokenSwingLowBar = na
-var line activeSwingLowLine = na
-var label activeSwingLowLabel = na
 
 // Function to get last swing high price
 getLastSwingHigh() =>
