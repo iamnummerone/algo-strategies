@@ -242,8 +242,11 @@ if not na(lastUnbrokenSwingHigh) and not na(lastUnbrokenSwingHighBar)
     if not na(activeSwingHighLabel)
         label.delete(activeSwingHighLabel)
     
+    // Limit how far back the line can start (max 500 bars)
+    lineStartBar = math.max(lastUnbrokenSwingHighBar, bar_index - 500)
+    
     // Draw new extending line
-    activeSwingHighLine := line.new(lastUnbrokenSwingHighBar, lastUnbrokenSwingHigh, bar_index, lastUnbrokenSwingHigh, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
+    activeSwingHighLine := line.new(lineStartBar, lastUnbrokenSwingHigh, bar_index, lastUnbrokenSwingHigh, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
     
     // Add label
     activeSwingHighLabel := label.new(bar_index, lastUnbrokenSwingHigh, "Swing High", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(color.gray, 30), size=size.tiny)
@@ -255,8 +258,11 @@ if not na(lastUnbrokenSwingLow) and not na(lastUnbrokenSwingLowBar)
     if not na(activeSwingLowLabel)
         label.delete(activeSwingLowLabel)
     
+    // Limit how far back the line can start (max 500 bars)
+    lineStartBar = math.max(lastUnbrokenSwingLowBar, bar_index - 500)
+    
     // Draw new extending line
-    activeSwingLowLine := line.new(lastUnbrokenSwingLowBar, lastUnbrokenSwingLow, bar_index, lastUnbrokenSwingLow, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
+    activeSwingLowLine := line.new(lineStartBar, lastUnbrokenSwingLow, bar_index, lastUnbrokenSwingLow, color=color.new(color.gray, 60), width=1, style=line.style_dotted)
     
     // Add label
     activeSwingLowLabel := label.new(bar_index, lastUnbrokenSwingLow, "Swing Low", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(color.gray, 30), size=size.tiny)
@@ -269,8 +275,9 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         if trendDir <= 0
             // CHoCH (Change of Character) - trend reversal
             if showLabels and not na(lastUnbrokenSwingHighBar)
-                // Draw line from swing point to breakout bar
-                line.new(lastUnbrokenSwingHighBar, lastSwingHigh, bar_index, lastSwingHigh, color=color.new(colorBullish, 40), width=1, style=line.style_solid)
+                // Draw line from swing point to breakout bar (limit to 500 bars back)
+                lineStart = math.max(lastUnbrokenSwingHighBar, bar_index - 500)
+                line.new(lineStart, lastSwingHigh, bar_index, lastSwingHigh, color=color.new(colorBullish, 40), width=1, style=line.style_solid)
                 // Draw label slightly above the line
                 label.new(bar_index, lastSwingHigh + (atrValue * 0.02), "CHoCH", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBullish, 10), size=size.tiny)
             trendDir := 1
@@ -290,8 +297,9 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         else
             // BOS (Break of Structure) - trend continuation
             if showLabels and not na(lastUnbrokenSwingHighBar)
-                // Draw line from swing point to breakout bar
-                line.new(lastUnbrokenSwingHighBar, lastSwingHigh, bar_index, lastSwingHigh, color=color.new(colorBullish, 40), width=1, style=line.style_solid)
+                // Draw line from swing point to breakout bar (limit to 500 bars back)
+                lineStart = math.max(lastUnbrokenSwingHighBar, bar_index - 500)
+                line.new(lineStart, lastSwingHigh, bar_index, lastSwingHigh, color=color.new(colorBullish, 40), width=1, style=line.style_solid)
                 // Draw label slightly above the line
                 label.new(bar_index, lastSwingHigh + (atrValue * 0.02), "BOS", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBullish, 10), size=size.tiny)
             array.push(brokenLevels, lastSwingHigh)
@@ -314,8 +322,9 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         if trendDir >= 0
             // CHoCH (Change of Character) - trend reversal
             if showLabels and not na(lastUnbrokenSwingLowBar)
-                // Draw line from swing point to breakout bar
-                line.new(lastUnbrokenSwingLowBar, lastSwingLow, bar_index, lastSwingLow, color=color.new(colorBearish, 40), width=1, style=line.style_solid)
+                // Draw line from swing point to breakout bar (limit to 500 bars back)
+                lineStart = math.max(lastUnbrokenSwingLowBar, bar_index - 500)
+                line.new(lineStart, lastSwingLow, bar_index, lastSwingLow, color=color.new(colorBearish, 40), width=1, style=line.style_solid)
                 // Draw label slightly below the line
                 label.new(bar_index, lastSwingLow - (atrValue * 0.02), "CHoCH", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBearish, 10), size=size.tiny)
             trendDir := -1
@@ -335,8 +344,9 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         else
             // BOS (Break of Structure) - trend continuation
             if showLabels and not na(lastUnbrokenSwingLowBar)
-                // Draw line from swing point to breakout bar
-                line.new(lastUnbrokenSwingLowBar, lastSwingLow, bar_index, lastSwingLow, color=color.new(colorBearish, 40), width=1, style=line.style_solid)
+                // Draw line from swing point to breakout bar (limit to 500 bars back)
+                lineStart = math.max(lastUnbrokenSwingLowBar, bar_index - 500)
+                line.new(lineStart, lastSwingLow, bar_index, lastSwingLow, color=color.new(colorBearish, 40), width=1, style=line.style_solid)
                 // Draw label slightly below the line
                 label.new(bar_index, lastSwingLow - (atrValue * 0.02), "BOS", style=label.style_none, color=color.new(color.white, 100), textcolor=color.new(colorBearish, 10), size=size.tiny)
             array.push(brokenLevels, lastSwingLow)
