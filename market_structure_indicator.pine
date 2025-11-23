@@ -30,6 +30,9 @@ htfLow = request.security(syminfo.tickerid, htf_tf, low, barmerge.gaps_off, barm
 htfClose = request.security(syminfo.tickerid, htf_tf, close, barmerge.gaps_off, barmerge.lookahead_off)
 htfOpen = request.security(syminfo.tickerid, htf_tf, open, barmerge.gaps_off, barmerge.lookahead_off)
 
+// Calculate ATR for visual offset
+atrValue = ta.atr(14)
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SWING DETECTION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -96,9 +99,10 @@ if swingHighDetected and (bar_index - lastSwingHighBar) >= minSwingBars
         array.shift(swingIndex)
         array.shift(swingIsHigh)
     
-    // Draw swing dot
+    // Draw swing dot with offset above the high
     if showSwingDots
-        label.new(bar_index - swingLen, htfHigh[swingLen], "", 
+        offsetPrice = htfHigh[swingLen] + (atrValue * 0.05)
+        label.new(bar_index - swingLen, offsetPrice, "", 
                   style=label.style_circle, 
                   color=colorSwingDot, 
                   size=size.tiny)
@@ -115,9 +119,10 @@ if swingLowDetected and (bar_index - lastSwingLowBar) >= minSwingBars
         array.shift(swingIndex)
         array.shift(swingIsHigh)
     
-    // Draw swing dot
+    // Draw swing dot with offset below the low
     if showSwingDots
-        label.new(bar_index - swingLen, htfLow[swingLen], "", 
+        offsetPrice = htfLow[swingLen] - (atrValue * 0.05)
+        label.new(bar_index - swingLen, offsetPrice, "", 
                   style=label.style_circle, 
                   color=colorSwingDot, 
                   size=size.tiny)
@@ -216,15 +221,17 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         if trendDir <= 0
             // CHoCH (Change of Character) - trend reversal
             if showLabels
-                label.new(bar_index, lastSwingHigh, "CHoCH", 
-                          style=label.style_label_up, 
-                          color=color.new(colorBullish, 70),
-                          textcolor=colorBullish, 
-                          size=size.small)
-                line.new(bar_index - 1, lastSwingHigh, bar_index + 5, lastSwingHigh, 
-                         color=colorBullish, 
+                // Draw horizontal structure line
+                line.new(bar_index - 2, lastSwingHigh, bar_index + 20, lastSwingHigh, 
+                         color=color.new(colorBullish, 50), 
                          width=1, 
-                         style=line.style_dashed)
+                         style=line.style_solid)
+                // Draw label slightly above the line
+                label.new(bar_index, lastSwingHigh + (atrValue * 0.03), "CHoCH", 
+                          style=label.style_none, 
+                          color=color.new(color.white, 100),
+                          textcolor=color.new(colorBullish, 20), 
+                          size=size.tiny)
             trendDir := 1
             array.push(brokenLevels, lastSwingHigh)
             
@@ -234,15 +241,17 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         else
             // BOS (Break of Structure) - trend continuation
             if showLabels
-                label.new(bar_index, lastSwingHigh, "BOS", 
-                          style=label.style_label_up, 
-                          color=color.new(colorBullish, 70),
-                          textcolor=colorBullish, 
-                          size=size.small)
-                line.new(bar_index - 1, lastSwingHigh, bar_index + 5, lastSwingHigh, 
-                         color=colorBullish, 
+                // Draw horizontal structure line
+                line.new(bar_index - 2, lastSwingHigh, bar_index + 20, lastSwingHigh, 
+                         color=color.new(colorBullish, 50), 
                          width=1, 
                          style=line.style_solid)
+                // Draw label slightly above the line
+                label.new(bar_index, lastSwingHigh + (atrValue * 0.03), "BOS", 
+                          style=label.style_none, 
+                          color=color.new(color.white, 100),
+                          textcolor=color.new(colorBullish, 20), 
+                          size=size.tiny)
             array.push(brokenLevels, lastSwingHigh)
             
             // Update swing range
@@ -255,15 +264,17 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         if trendDir >= 0
             // CHoCH (Change of Character) - trend reversal
             if showLabels
-                label.new(bar_index, lastSwingLow, "CHoCH", 
-                          style=label.style_label_down, 
-                          color=color.new(colorBearish, 70),
-                          textcolor=colorBearish, 
-                          size=size.small)
-                line.new(bar_index - 1, lastSwingLow, bar_index + 5, lastSwingLow, 
-                         color=colorBearish, 
+                // Draw horizontal structure line
+                line.new(bar_index - 2, lastSwingLow, bar_index + 20, lastSwingLow, 
+                         color=color.new(colorBearish, 50), 
                          width=1, 
-                         style=line.style_dashed)
+                         style=line.style_solid)
+                // Draw label slightly below the line
+                label.new(bar_index, lastSwingLow - (atrValue * 0.03), "CHoCH", 
+                          style=label.style_none, 
+                          color=color.new(color.white, 100),
+                          textcolor=color.new(colorBearish, 20), 
+                          size=size.tiny)
             trendDir := -1
             array.push(brokenLevels, lastSwingLow)
             
@@ -273,15 +284,17 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
         else
             // BOS (Break of Structure) - trend continuation
             if showLabels
-                label.new(bar_index, lastSwingLow, "BOS", 
-                          style=label.style_label_down, 
-                          color=color.new(colorBearish, 70),
-                          textcolor=colorBearish, 
-                          size=size.small)
-                line.new(bar_index - 1, lastSwingLow, bar_index + 5, lastSwingLow, 
-                         color=colorBearish, 
+                // Draw horizontal structure line
+                line.new(bar_index - 2, lastSwingLow, bar_index + 20, lastSwingLow, 
+                         color=color.new(colorBearish, 50), 
                          width=1, 
                          style=line.style_solid)
+                // Draw label slightly below the line
+                label.new(bar_index, lastSwingLow - (atrValue * 0.03), "BOS", 
+                          style=label.style_none, 
+                          color=color.new(color.white, 100),
+                          textcolor=color.new(colorBearish, 20), 
+                          size=size.tiny)
             array.push(brokenLevels, lastSwingLow)
             
             // Update swing range
