@@ -99,13 +99,18 @@ if swingHighDetected and (bar_index - lastSwingHighBar) >= minSwingBars
         array.shift(swingIndex)
         array.shift(swingIsHigh)
     
-    // Draw swing dot with offset above the high
+    // Draw swing dot with offset above the high - make it very small and subtle
     if showSwingDots
-        offsetPrice = htfHigh[swingLen] + (atrValue * 0.05)
+        offsetPrice = htfHigh[swingLen] + (atrValue * 0.03)
         label.new(bar_index - swingLen, offsetPrice, "", 
                   style=label.style_circle, 
-                  color=colorSwingDot, 
+                  color=color.new(color.gray, 40), 
                   size=size.tiny)
+    
+    // Update last unbroken swing high
+    if na(lastUnbrokenSwingHigh) or htfHigh[swingLen] > lastUnbrokenSwingHigh
+        lastUnbrokenSwingHigh := htfHigh[swingLen]
+        lastUnbrokenSwingHighBar := bar_index - swingLen
 
 if swingLowDetected and (bar_index - lastSwingLowBar) >= minSwingBars
     array.push(swingPrice, htfLow[swingLen])
@@ -119,13 +124,18 @@ if swingLowDetected and (bar_index - lastSwingLowBar) >= minSwingBars
         array.shift(swingIndex)
         array.shift(swingIsHigh)
     
-    // Draw swing dot with offset below the low
+    // Draw swing dot with offset below the low - make it very small and subtle
     if showSwingDots
-        offsetPrice = htfLow[swingLen] - (atrValue * 0.05)
+        offsetPrice = htfLow[swingLen] - (atrValue * 0.03)
         label.new(bar_index - swingLen, offsetPrice, "", 
                   style=label.style_circle, 
-                  color=colorSwingDot, 
+                  color=color.new(color.gray, 40), 
                   size=size.tiny)
+    
+    // Update last unbroken swing low
+    if na(lastUnbrokenSwingLow) or htfLow[swingLen] < lastUnbrokenSwingLow
+        lastUnbrokenSwingLow := htfLow[swingLen]
+        lastUnbrokenSwingLowBar := bar_index - swingLen
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOS & CHoCH LOGIC
@@ -143,6 +153,17 @@ var line lowerRangeLine = na
 var label rangeLabel = na
 var float currentRangeHigh = na
 var float currentRangeLow = na
+
+// Storage for last unbroken swing high/low (for extending lines)
+var float lastUnbrokenSwingHigh = na
+var int lastUnbrokenSwingHighBar = na
+var line activeSwingHighLine = na
+var label activeSwingHighLabel = na
+
+var float lastUnbrokenSwingLow = na
+var int lastUnbrokenSwingLowBar = na
+var line activeSwingLowLine = na
+var label activeSwingLowLabel = na
 
 // Function to get last swing high price
 getLastSwingHigh() =>
@@ -213,6 +234,51 @@ prevSwingLow = getPrevSwingLow()
 // Calculate buffer
 buffer = htfClose * breakBuffer
 
+// Update extending lines for unbroken swings
+if not na(lastUnbrokenSwingHigh) and not na(lastUnbrokenSwingHighBar)
+    // Delete old line and label
+    if not na(activeSwingHighLine)
+        line.delete(activeSwingHighLine)
+    if not na(activeSwingHighLabel)
+        label.delete(activeSwingHighLabel)
+    
+    // Draw new extending line
+    activeSwingHighLine := line.new(lastUnbrokenSwingHighBar, lastUnbrokenSwingHigh, 
+                                     bar_index, lastUnbrokenSwingHigh, 
+                                     color=color.new(color.gray, 60), 
+                                     width=1, 
+                                     style=line.style_dotted)
+    
+    // Add label
+    activeSwingHighLabel := label.new(bar_index, lastUnbrokenSwingHigh, 
+                                       "Swing High", 
+                                       style=label.style_none, 
+                                       color=color.new(color.white, 100),
+                                       textcolor=color.new(color.gray, 30), 
+                                       size=size.tiny)
+
+if not na(lastUnbrokenSwingLow) and not na(lastUnbrokenSwingLowBar)
+    // Delete old line and label
+    if not na(activeSwingLowLine)
+        line.delete(activeSwingLowLine)
+    if not na(activeSwingLowLabel)
+        label.delete(activeSwingLowLabel)
+    
+    // Draw new extending line
+    activeSwingLowLine := line.new(lastUnbrokenSwingLowBar, lastUnbrokenSwingLow, 
+                                    bar_index, lastUnbrokenSwingLow, 
+                                    color=color.new(color.gray, 60), 
+                                    width=1, 
+                                    style=line.style_dotted)
+    
+    // Add label
+    activeSwingLowLabel := label.new(bar_index, lastUnbrokenSwingLow, 
+                                      "Swing Low", 
+                                      style=label.style_none, 
+                                      color=color.new(color.white, 100),
+                                      textcolor=color.new(color.gray, 30), 
+                                      size=size.tiny)
+
 // BOS & CHoCH Detection
 if not na(lastSwingHigh) and not na(lastSwingLow)
     
@@ -220,39 +286,55 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
     if htfClose > lastSwingHigh + buffer and not wasLevelBroken(lastSwingHigh)
         if trendDir <= 0
             // CHoCH (Change of Character) - trend reversal
-            if showLabels
-                // Draw horizontal structure line
-                line.new(bar_index - 2, lastSwingHigh, bar_index + 20, lastSwingHigh, 
-                         color=color.new(colorBullish, 50), 
+            if showLabels and not na(lastUnbrokenSwingHighBar)
+                // Draw line from swing point to breakout bar
+                line.new(lastUnbrokenSwingHighBar, lastSwingHigh, bar_index, lastSwingHigh, 
+                         color=color.new(colorBullish, 40), 
                          width=1, 
                          style=line.style_solid)
                 // Draw label slightly above the line
-                label.new(bar_index, lastSwingHigh + (atrValue * 0.03), "CHoCH", 
+                label.new(bar_index, lastSwingHigh + (atrValue * 0.02), "CHoCH", 
                           style=label.style_none, 
                           color=color.new(color.white, 100),
-                          textcolor=color.new(colorBullish, 20), 
+                          textcolor=color.new(colorBullish, 10), 
                           size=size.tiny)
             trendDir := 1
             array.push(brokenLevels, lastSwingHigh)
+            
+            // Stop extending the swing high line (it's been broken)
+            if not na(activeSwingHighLine)
+                line.delete(activeSwingHighLine)
+                activeSwingHighLine := na
+            if not na(activeSwingHighLabel)
+                label.delete(activeSwingHighLabel)
+                activeSwingHighLabel := na
             
             // Update swing range
             currentRangeHigh := lastSwingHigh
             currentRangeLow := lastSwingLow
         else
             // BOS (Break of Structure) - trend continuation
-            if showLabels
-                // Draw horizontal structure line
-                line.new(bar_index - 2, lastSwingHigh, bar_index + 20, lastSwingHigh, 
-                         color=color.new(colorBullish, 50), 
+            if showLabels and not na(lastUnbrokenSwingHighBar)
+                // Draw line from swing point to breakout bar
+                line.new(lastUnbrokenSwingHighBar, lastSwingHigh, bar_index, lastSwingHigh, 
+                         color=color.new(colorBullish, 40), 
                          width=1, 
                          style=line.style_solid)
                 // Draw label slightly above the line
-                label.new(bar_index, lastSwingHigh + (atrValue * 0.03), "BOS", 
+                label.new(bar_index, lastSwingHigh + (atrValue * 0.02), "BOS", 
                           style=label.style_none, 
                           color=color.new(color.white, 100),
-                          textcolor=color.new(colorBullish, 20), 
+                          textcolor=color.new(colorBullish, 10), 
                           size=size.tiny)
             array.push(brokenLevels, lastSwingHigh)
+            
+            // Stop extending the swing high line (it's been broken)
+            if not na(activeSwingHighLine)
+                line.delete(activeSwingHighLine)
+                activeSwingHighLine := na
+            if not na(activeSwingHighLabel)
+                label.delete(activeSwingHighLabel)
+                activeSwingHighLabel := na
             
             // Update swing range
             currentRangeHigh := lastSwingHigh
@@ -263,39 +345,55 @@ if not na(lastSwingHigh) and not na(lastSwingLow)
     if htfClose < lastSwingLow - buffer and not wasLevelBroken(lastSwingLow)
         if trendDir >= 0
             // CHoCH (Change of Character) - trend reversal
-            if showLabels
-                // Draw horizontal structure line
-                line.new(bar_index - 2, lastSwingLow, bar_index + 20, lastSwingLow, 
-                         color=color.new(colorBearish, 50), 
+            if showLabels and not na(lastUnbrokenSwingLowBar)
+                // Draw line from swing point to breakout bar
+                line.new(lastUnbrokenSwingLowBar, lastSwingLow, bar_index, lastSwingLow, 
+                         color=color.new(colorBearish, 40), 
                          width=1, 
                          style=line.style_solid)
                 // Draw label slightly below the line
-                label.new(bar_index, lastSwingLow - (atrValue * 0.03), "CHoCH", 
+                label.new(bar_index, lastSwingLow - (atrValue * 0.02), "CHoCH", 
                           style=label.style_none, 
                           color=color.new(color.white, 100),
-                          textcolor=color.new(colorBearish, 20), 
+                          textcolor=color.new(colorBearish, 10), 
                           size=size.tiny)
             trendDir := -1
             array.push(brokenLevels, lastSwingLow)
+            
+            // Stop extending the swing low line (it's been broken)
+            if not na(activeSwingLowLine)
+                line.delete(activeSwingLowLine)
+                activeSwingLowLine := na
+            if not na(activeSwingLowLabel)
+                label.delete(activeSwingLowLabel)
+                activeSwingLowLabel := na
             
             // Update swing range
             currentRangeHigh := lastSwingHigh
             currentRangeLow := lastSwingLow
         else
             // BOS (Break of Structure) - trend continuation
-            if showLabels
-                // Draw horizontal structure line
-                line.new(bar_index - 2, lastSwingLow, bar_index + 20, lastSwingLow, 
-                         color=color.new(colorBearish, 50), 
+            if showLabels and not na(lastUnbrokenSwingLowBar)
+                // Draw line from swing point to breakout bar
+                line.new(lastUnbrokenSwingLowBar, lastSwingLow, bar_index, lastSwingLow, 
+                         color=color.new(colorBearish, 40), 
                          width=1, 
                          style=line.style_solid)
                 // Draw label slightly below the line
-                label.new(bar_index, lastSwingLow - (atrValue * 0.03), "BOS", 
+                label.new(bar_index, lastSwingLow - (atrValue * 0.02), "BOS", 
                           style=label.style_none, 
                           color=color.new(color.white, 100),
-                          textcolor=color.new(colorBearish, 20), 
+                          textcolor=color.new(colorBearish, 10), 
                           size=size.tiny)
             array.push(brokenLevels, lastSwingLow)
+            
+            // Stop extending the swing low line (it's been broken)
+            if not na(activeSwingLowLine)
+                line.delete(activeSwingLowLine)
+                activeSwingLowLine := na
+            if not na(activeSwingLowLabel)
+                label.delete(activeSwingLowLabel)
+                activeSwingLowLabel := na
             
             // Update swing range
             currentRangeLow := lastSwingLow
